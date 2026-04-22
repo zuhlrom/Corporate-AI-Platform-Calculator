@@ -10,9 +10,9 @@ export interface PhaseRollup {
   mvpExternalPdBase: number
   mvpInternalPdBase: number
   /** Sheet `04` column L for PoC rows P0–P7 (CHF, before cost factor). */
-  pocPhaseExtChfBaseline: readonly number[]
+  pocPhaseExtChfBaseline: number[]
   /** Sheet `04` cells L30, L35, L42, L51 (MVP block extern CHF, before factor). */
-  mvpBlockExtChfBaseline: readonly number[]
+  mvpBlockExtChfBaseline: number[]
 }
 
 export interface ScenarioModel {
@@ -40,7 +40,7 @@ export interface ScenarioModel {
    * Monthly CHF per infrastructure line (sheet `03`, rows under platform block, excluding contingency).
    * `"—"` / empty cells → 0.
    */
-  platformInfraMonthlyCHF: readonly number[]
+  platformInfraMonthlyCHF: number[]
   /** Contingency on infra lines (workbook uses 10%). */
   platformContingencyFraction?: number
 }
@@ -76,7 +76,7 @@ export interface CommercialInputs {
 export interface UsageInputs {
   potentialUsers: number
   /** Length = horizon; workbook default 5× adoption ramp. */
-  activeUserShareY: readonly number[]
+  activeUserShareY: number[]
   interactionsPerActiveUserPerWorkday: number
   workdaysPerYear: number
   workdaysPerMonth: number
@@ -104,5 +104,5 @@ export interface CalcModel {
   benefits: BenefitInputs
   commercial: CommercialInputs
   phase: PhaseRollup
-  scenarios: readonly ScenarioModel[]
+  scenarios: ScenarioModel[]
 }

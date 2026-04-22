@@ -1,13 +1,26 @@
 import type { CalcModel, ScenarioModel } from "./model"
 import type { UsageYearSeries } from "./usage"
 
+export interface FteAnnualLine {
+  key: string
+  labelDe: string
+  annualChf: number
+}
+
 export interface ScenarioFinancials {
   externalPdPoc: number
   internalPdPoc: number
   externalPdMvp: number
   internalPdMvp: number
+  /** PoC phase extern CHF after scenario cost factor (wie Zeilen P0–P7). */
+  pocPhaseCostsChf: number[]
+  /** MVP-Blöcke nach Faktor (wie L30/L35/L42/L51). */
+  mvpBlockCostsChf: number[]
   implementationChf: number
   variableOpexYRef: number
+  platformAnnualChf: number
+  fteAnnualChf: number
+  fteLines: FteAnnualLine[]
   fixedOpexAnnualYRef: number
   steadyOpexAnnualYRef: number
   opexPerYear: number[]
@@ -43,18 +56,47 @@ function variableUsageCost(
   )
 }
 
-function fteAnnualCost(model: CalcModel, s: ScenarioModel): number {
+function fteAnnualLines(
+  model: CalcModel,
+  s: ScenarioModel,
+): { lines: FteAnnualLine[]; total: number } {
   const m = model.fteCosts
   const op = s.operating
   const qaRate = m.monthlyBusinessCHF
-  return (
-    op.ftePO * m.monthlyBusinessCHF * 12 +
-    op.fteContentOps * m.monthlyContentCHF * 12 +
-    op.ftePlatform * m.monthlyPlatformCHF * 12 +
-    op.fteQA * qaRate * 12 +
-    op.externalSupportMonthlyCHF * 12 +
-    op.hypercareContentFteY1 * m.monthlyContentCHF * 12
-  )
+  const lines: FteAnnualLine[] = [
+    {
+      key: "po",
+      labelDe: "Product Owner / Backlog (FTE)",
+      annualChf: op.ftePO * m.monthlyBusinessCHF * 12,
+    },
+    {
+      key: "content",
+      labelDe: "Wissensmanagement / Content Ops (FTE)",
+      annualChf: op.fteContentOps * m.monthlyContentCHF * 12,
+    },
+    {
+      key: "platform",
+      labelDe: "Plattform / Integration (FTE)",
+      annualChf: op.ftePlatform * m.monthlyPlatformCHF * 12,
+    },
+    {
+      key: "qa",
+      labelDe: "QA / Analytics / Governance (FTE)",
+      annualChf: op.fteQA * qaRate * 12,
+    },
+    {
+      key: "ext_support",
+      labelDe: "Externer Support / Managed Service",
+      annualChf: op.externalSupportMonthlyCHF * 12,
+    },
+    {
+      key: "hypercare",
+      labelDe: "Hypercare-Aufschlag auf FTE (Modell)",
+      annualChf: op.hypercareContentFteY1 * m.monthlyContentCHF * 12,
+    },
+  ]
+  const total = lines.reduce((a, l) => a + l.annualChf, 0)
+  return { lines, total }
 }
 
 /**
@@ -74,8 +116,10 @@ export function computeScenarioFinancials(
   const ph = model.phase
   const f = s.costFactor
 
-  const pocImplChf = sum(ph.pocPhaseExtChfBaseline.map((v) => v * f))
-  const mvpImplChf = sum(ph.mvpBlockExtChfBaseline.map((v) => v * f))
+  const pocPhaseCostsChf = ph.pocPhaseExtChfBaseline.map((v) => v * f)
+  const mvpBlockCostsChf = ph.mvpBlockExtChfBaseline.map((v) => v * f)
+  const pocImplChf = sum(pocPhaseCostsChf)
+  const mvpImplChf = sum(mvpBlockCostsChf)
   const implementationChf = pocImplChf + mvpImplChf
 
   const refIdx = usageReferenceYearIndex(model.horizonYears)
@@ -88,7 +132,7 @@ export function computeScenarioFinancials(
   const variableYRef = variableUsageCost(s, usage, refIdx)
 
   const platformAnnual = platformMonthlyTotal(s) * 12
-  const fteAnnual = fteAnnualCost(model, s)
+  const { lines: fteLines, total: fteAnnual } = fteAnnualLines(model, s)
   const fixedAnnual = platformAnnual + fteAnnual
   const steadyOpexAnnualYRef = variableYRef + fixedAnnual
 
@@ -102,8 +146,13 @@ export function computeScenarioFinancials(
     internalPdPoc: ph.pocInternalPdBase * f,
     externalPdMvp: ph.mvpExternalPdBase * f,
     internalPdMvp: ph.mvpInternalPdBase * f,
+    pocPhaseCostsChf,
+    mvpBlockCostsChf,
     implementationChf,
     variableOpexYRef: variableYRef,
+    platformAnnualChf: platformAnnual,
+    fteAnnualChf: fteAnnual,
+    fteLines,
     fixedOpexAnnualYRef: fixedAnnual,
     steadyOpexAnnualYRef,
     opexPerYear,

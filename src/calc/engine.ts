@@ -1,4 +1,4 @@
-import type { CalcModel } from "./model"
+import type { CalcModel, ScenarioModel } from "./model"
 import { computeBenefits } from "./benefits"
 import { computeUsage } from "./usage"
 import {
@@ -13,6 +13,7 @@ export interface EngineResult {
     id: string
     name: string
     rank: number
+    scenario: ScenarioModel
     financials: ScenarioFinancials
     value: ValueCasePerScenario
   }[]
@@ -44,7 +45,7 @@ export function computeEngine(model: CalcModel): EngineResult {
       s,
       financials,
     )
-    return { id: s.id, name: s.name, rank: 0, financials, value }
+    return { id: s.id, name: s.name, rank: 0, scenario: s, financials, value }
   })
 
   const nets = scenarios.map((s) => s.value.fiveYearNetValue)

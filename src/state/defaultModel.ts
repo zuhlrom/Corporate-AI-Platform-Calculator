@@ -177,3 +177,8 @@ export const defaultModel: CalcModel = {
     },
   ],
 }
+
+/** Deep clone for store reset / snapshots. */
+export function cloneDefaultModel(): CalcModel {
+  return structuredClone(defaultModel)
+}
