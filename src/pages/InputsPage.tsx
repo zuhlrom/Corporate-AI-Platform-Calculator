@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 
 import { SectionCard } from "@/components/forms/SectionCard"
 import { NumInput } from "@/components/forms/NumInput"
+import { WorkshopTable } from "@/components/forms/WorkshopTable"
 import { useModelStore } from "@/state/store"
 import { computeBenefits } from "@/calc/benefits"
 import { formatChf } from "@/lib/format"
@@ -35,7 +36,11 @@ export default function InputsPage() {
   const model = useModelStore((s) => s.model)
   const setHorizonYears = useModelStore((s) => s.setHorizonYears)
 
-  const b = computeBenefits(model.benefits, model.commercial)
+  const b = computeBenefits(
+    model.benefits,
+    model.commercial,
+    model.workshopUseCases,
+  )
 
   const computedPotentialUsers =
     model.scaling.numberOfPoS * model.scaling.serviceMAPerPoS +
@@ -367,8 +372,8 @@ export default function InputsPage() {
       </SectionCard>
 
       <SectionCard
-        title="4) Effizienzhebel (Top-down)"
-        subtitle="Wie Zeilenblock 1 im Blatt 06_NUTZEN_MODELL. Override-Felder > 0 überschreiben den abgeleiteten Wert."
+        title="4) Nutzenmodell – Top-down Hebel"
+        subtitle="Zeilenblock 1 aus 06_NUTZEN_MODELL. Treiber pro Fallgruppe; Override-Felder > 0 ersetzen den abgeleiteten Fallzählerwert."
       >
         <Row label="Reduktion unnötige SA (Ziel %)">
           <NumInput
@@ -497,6 +502,17 @@ export default function InputsPage() {
             }
           />
         </Row>
+        <Row
+          label="Landi-Referenz DG-Nutzen (CHF)"
+          hint="Rein informativ als Crosscheck; fliesst nicht in den Basiscase ein."
+        >
+          <NumInput
+            value={model.benefits.directCreditReferenceCHF}
+            onChange={(v) =>
+              apply((m) => void (m.benefits.directCreditReferenceCHF = v))
+            }
+          />
+        </Row>
         <Row label="Konservativer Wirkungsgrad Effizienz (0–1)">
           <NumInput
             value={model.benefits.conservativeEfficiencyFactor}
@@ -513,7 +529,14 @@ export default function InputsPage() {
       </SectionCard>
 
       <SectionCard
-        title="5) Kommerzielle Hebel (Online & Stationär)"
+        title="5) Nutzenmodell – Bottom-up Workshop"
+        subtitle="Zeilenblock 2 aus 06_NUTZEN_MODELL. Jeder Task ist vollständig editierbar (CRUD). Arbeitsnutzen = Erfolgreiche Cases × eingesparte Minuten × CHF/Min."
+      >
+        <WorkshopTable />
+      </SectionCard>
+
+      <SectionCard
+        title="6) Kommerzielle Hebel (Online & Stationär)"
         subtitle="Blatt 06 §3 – abgeleitet aus Sessions, Conversion, Basket & Spare Parts. Override möglich."
       >
         <Row label="Kommerzielle Upside im Basiscase aktiv">
@@ -698,7 +721,7 @@ export default function InputsPage() {
       </SectionCard>
 
       <SectionCard
-        title="6) Dokumentmengen (Kontext)"
+        title="7) Dokumentmengen (Kontext)"
         subtitle="Block 6 im Excel – informativ für RAG/Speicher-Kalkulation."
       >
         <Row label="PIM-Export (#)">

@@ -9,6 +9,7 @@ import { computeValueCase, type ValueCasePerScenario } from "./valueCase"
 
 export interface EngineResult {
   usage: ReturnType<typeof computeUsage>
+  benefits: ReturnType<typeof computeBenefits>
   scenarios: {
     id: string
     name: string
@@ -33,7 +34,11 @@ function rankDesc(values: number[]): number[] {
 
 export function computeEngine(model: CalcModel): EngineResult {
   const usage = computeUsage(model)
-  const benefits = computeBenefits(model.benefits, model.commercial)
+  const benefits = computeBenefits(
+    model.benefits,
+    model.commercial,
+    model.workshopUseCases,
+  )
 
   const scenarios = model.scenarios.map((s) => {
     const financials = computeScenarioFinancials(model, s, usage)
@@ -55,5 +60,5 @@ export function computeEngine(model: CalcModel): EngineResult {
     rank: ranks[i]!,
   }))
 
-  return { usage, scenarios: withRank }
+  return { usage, benefits, scenarios: withRank }
 }

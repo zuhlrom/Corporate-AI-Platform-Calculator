@@ -75,4 +75,13 @@ describe("computeEngine vs Digital_Assistant_Szenario_Berechnung_v11-1", () => {
     const vertex = r.scenarios.find((s) => s.id === "gcp-vertex")
     expect(vertex?.rank).toBe(1)
   })
+
+  it("matches workshop bottom-up (Landi CH + Gesamt brutto)", () => {
+    const w = r.benefits.workshop
+    // Excel 06_NUTZEN_MODELL: Landi CH = 1'429'224.85, Gesamt = 2'515'570.35
+    expect(w.grossCHOnly).toBeCloseTo(1_429_224.85, 0)
+    expect(w.grossCHFPerYear).toBeCloseTo(2_515_570.35, 0)
+    expect(w.totalWorkLaden).toBeCloseTo(1_086_345.5, 0)
+    expect(w.totalAvoidedSa).toBeCloseTo(622_700, 0)
+  })
 })

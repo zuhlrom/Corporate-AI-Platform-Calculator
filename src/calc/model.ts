@@ -55,6 +55,33 @@ export interface ScenarioModel {
   scorecard: ScorecardEntry[]
 }
 
+/** One editable row in the bottom-up workshop table (sheet `06` §2). */
+export interface WorkshopUseCase {
+  id: string
+  taskLabel: string
+  businessCaseLabel: string
+  casesCH: number
+  casesLaden: number
+  adoptionCH: number
+  adoptionLaden: number
+  successRate: number
+  timeBeforeMin: number
+  timeAfterAiMin: number
+  costPerMinCHF: number
+  costPerMinLadenCHF: number
+  avoidedServiceOrders: number
+  costPerServiceOrderCHF: number
+  avoidedDirectCredits: number
+  /** CHF Nutzen pro vermiedene Direktgutschrift. */
+  costPerDirectCreditCHF: number
+  /** Zusätzlicher Deckungsbeitrag p.a. (CHF) – Excel col AA. */
+  extraMarginCHFPerYear: number
+  /** Zusätzliche Ersatzteilverkäufe / Jahr – Excel col AB. */
+  extraSparePartsSales: number
+  /** Nutzen pro Ersatzteilverkauf (CHF) – Excel col AC. */
+  benefitPerSparePartSaleCHF: number
+}
+
 export interface BenefitInputs {
   unnecessarySaReductionFraction: number
   returnedServiceOrdersPerYear: number
@@ -71,7 +98,8 @@ export interface BenefitInputs {
   overrideRemainingOptimizedRequests: number
   remainingRequestTimeSavingFraction: number
   overrideAvoidedDirectCredits: number
-  overrideDirectCreditBenefitCHF: number
+  /** Landi-Referenz CHF/p.a. (informativ, zum Crosscheck mit Modellwert). */
+  directCreditReferenceCHF: number
   /** Default 0.75 in workbook. */
   conservativeEfficiencyFactor: number
 }
@@ -176,6 +204,7 @@ export interface CalcModel {
   fteCosts: FteCostInputs
   benefits: BenefitInputs
   commercial: CommercialInputs
+  workshopUseCases: WorkshopUseCase[]
   phase: PhaseRollup
   scenarios: ScenarioModel[]
 }

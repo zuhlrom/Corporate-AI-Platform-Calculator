@@ -13,16 +13,24 @@ const LEVER_TITLES: Record<string, string> = {
 
 export default function BenefitsPage() {
   const model = useModelStore((s) => s.model)
-  const b = computeBenefits(model.benefits, model.commercial)
+  const b = computeBenefits(
+    model.benefits,
+    model.commercial,
+    model.workshopUseCases,
+  )
+
+  const ratio =
+    b.topDownGrossCHFPerYear > 0
+      ? b.workshop.grossCHOnly / b.topDownGrossCHFPerYear
+      : 0
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold">06_NUTZEN_MODELL</h1>
         <p className="text-muted-foreground mt-1 max-w-3xl text-sm">
-          Top-down Effizienzhebel (editierbar unter 02_INPUTS) mit abgeleiteten
-          CHF und konservativem Total. Kommerzielle Upside folgt den Schaltern
-          dort.
+          Top-down Effizienzhebel, Bottom-up Workshop Crosscheck und
+          kommerzielle Upside. Editierbar in <strong>02_INPUTS</strong>.
         </p>
       </div>
 
@@ -72,8 +80,114 @@ export default function BenefitsPage() {
       </SectionCard>
 
       <SectionCard
+        title="Bottom-up Workshop (Crosscheck)"
+        subtitle="Jeder Task aus 06 §2 mit abgeleitetem Arbeitsnutzen + Outcomes. Editierbar unter 02_INPUTS → Bottom-up Workshop."
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-xs">
+            <thead>
+              <tr className="border-b border-border text-left">
+                <th className="p-2 font-medium">Task</th>
+                <th className="p-2 text-right font-medium">Erfolg. CH</th>
+                <th className="p-2 text-right font-medium">Erfolg. Laden</th>
+                <th className="p-2 text-right font-medium">Nutzen CH</th>
+                <th className="p-2 text-right font-medium">Nutzen Laden</th>
+                <th className="p-2 text-right font-medium">SA+DG+Marge+ET</th>
+                <th className="p-2 text-right font-medium">Total CHF p.a.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {b.workshop.lines.map((l) => {
+                const outcomes =
+                  l.benefitAvoidedSa +
+                  l.benefitAvoidedDc +
+                  l.extraMarginCHFPerYear +
+                  l.benefitExtraSpareParts
+                return (
+                  <tr key={l.id} className="border-b border-border/70">
+                    <td className="p-2">{l.taskLabel}</td>
+                    <td className="p-2 text-right tabular-nums">
+                      {formatNum(l.successfulCasesCH)}
+                    </td>
+                    <td className="p-2 text-right tabular-nums">
+                      {formatNum(l.successfulCasesLaden)}
+                    </td>
+                    <td className="p-2 text-right tabular-nums">
+                      {formatChf(l.benefitWorkCH)}
+                    </td>
+                    <td className="p-2 text-right tabular-nums">
+                      {formatChf(l.benefitWorkLaden)}
+                    </td>
+                    <td className="p-2 text-right tabular-nums">
+                      {formatChf(outcomes)}
+                    </td>
+                    <td className="p-2 text-right tabular-nums font-medium">
+                      {formatChf(l.totalCHFPerYear)}
+                    </td>
+                  </tr>
+                )
+              })}
+              <tr className="bg-muted/40 font-medium">
+                <td className="p-2">Total</td>
+                <td className="p-2" />
+                <td className="p-2" />
+                <td className="p-2 text-right">
+                  {formatChf(b.workshop.totalWorkCH)}
+                </td>
+                <td className="p-2 text-right">
+                  {formatChf(b.workshop.totalWorkLaden)}
+                </td>
+                <td className="p-2 text-right">
+                  {formatChf(
+                    b.workshop.totalAvoidedSa +
+                      b.workshop.totalAvoidedDc +
+                      b.workshop.totalExtraMargin +
+                      b.workshop.totalExtraSpareParts,
+                  )}
+                </td>
+                <td className="p-2 text-right">
+                  {formatChf(b.workshop.grossCHFPerYear)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+          <div className="rounded-md border border-border bg-card p-2">
+            <div className="text-[10px] uppercase text-muted-foreground">
+              Bottom-up Landi CH
+            </div>
+            <div className="mt-1 font-medium">
+              {formatChf(b.workshop.grossCHOnly)}
+            </div>
+          </div>
+          <div className="rounded-md border border-border bg-card p-2">
+            <div className="text-[10px] uppercase text-muted-foreground">
+              Top-down brutto
+            </div>
+            <div className="mt-1 font-medium">
+              {formatChf(b.topDownGrossCHFPerYear)}
+            </div>
+          </div>
+          <div className="rounded-md border border-border bg-card p-2">
+            <div className="text-[10px] uppercase text-muted-foreground">
+              Verhältnis Bottom-up / Top-down
+            </div>
+            <div className="mt-1 font-medium">
+              {ratio > 0 ? `${(ratio * 100).toFixed(0)} %` : "—"}
+            </div>
+            <div className="text-[10px] text-muted-foreground">
+              Ziel-Toleranz 80–120 %: Workshop ≈ Top-down heisst das Modell ist
+              konsistent kalibriert.
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard
         title="Kommerzielle Upside (abgeleitet aus Treibern)"
-        subtitle="Override im Input möglich. Inaktiv im Basiscase solange der Schalter in 02_INPUTS (D81) = 0."
+        subtitle="Override im Input möglich. Inaktiv im Basiscase solange der Schalter in 02_INPUTS = aus."
       >
         <table className="w-full text-sm">
           <thead>

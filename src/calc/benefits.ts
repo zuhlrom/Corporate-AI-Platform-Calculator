@@ -1,4 +1,8 @@
-import type { BenefitInputs, CommercialInputs } from "./model"
+import type {
+  BenefitInputs,
+  CommercialInputs,
+  WorkshopUseCase,
+} from "./model"
 
 export interface EfficiencyLeverLine {
   key: string
@@ -13,6 +17,39 @@ export interface CommercialLeverLine {
   chfPerYear: number
 }
 
+export interface WorkshopLine extends WorkshopUseCase {
+  kiCasesCH: number
+  successfulCasesCH: number
+  kiCasesLaden: number
+  successfulCasesLaden: number
+  savedMinutes: number
+  benefitWorkCH: number
+  benefitWorkLaden: number
+  benefitAvoidedSa: number
+  benefitAvoidedDc: number
+  benefitExtraSpareParts: number
+  /** Landi CH brutto (Excel AE): Arbeitsnutzen CH + SA + DG + Marge + Ersatzteile. */
+  grossCH: number
+  /** Landi Laden brutto (Excel AF): Arbeitsnutzen Laden. */
+  grossLaden: number
+  /** Gesamt brutto (Excel AG): grossCH + grossLaden. */
+  totalCHFPerYear: number
+}
+
+export interface WorkshopCore {
+  lines: WorkshopLine[]
+  totalWorkCH: number
+  totalWorkLaden: number
+  totalAvoidedSa: number
+  totalAvoidedDc: number
+  totalExtraMargin: number
+  totalExtraSpareParts: number
+  /** Gesamt brutto (CH + Laden + Outcomes) p.a. */
+  grossCHFPerYear: number
+  /** Nur Landi CH brutto p.a. – Crosscheck gegen Top-down. */
+  grossCHOnly: number
+}
+
 export interface BenefitCore {
   topDownLines: EfficiencyLeverLine[]
   topDownGrossCHFPerYear: number
@@ -22,6 +59,7 @@ export interface BenefitCore {
   commercialAfterHaircutCHFPerYear: number
   /** Basiscase p.a. (Effizienz + optional kommerzielle Upside). */
   baseCaseCHFPerYear: number
+  workshop: WorkshopCore
 }
 
 function leverUnnecessarySa(b: BenefitInputs): EfficiencyLeverLine {
@@ -139,9 +177,71 @@ function computeCommercial(c: CommercialInputs): {
   return { lines, gross }
 }
 
+function computeWorkshop(useCases: WorkshopUseCase[]): WorkshopCore {
+  const lines: WorkshopLine[] = useCases.map((u) => {
+    const kiCH = u.casesCH * u.adoptionCH
+    const successCH = kiCH * u.successRate
+    const kiLaden = u.casesLaden * u.adoptionLaden
+    const successLaden = kiLaden * u.successRate
+    const savedMin = Math.max(u.timeBeforeMin - u.timeAfterAiMin, 0)
+    const benefitCH = successCH * savedMin * u.costPerMinCHF
+    const benefitLaden = successLaden * savedMin * u.costPerMinLadenCHF
+    const benefitSa = u.avoidedServiceOrders * u.costPerServiceOrderCHF
+    const benefitDc = u.avoidedDirectCredits * u.costPerDirectCreditCHF
+    const benefitSp = u.extraSparePartsSales * u.benefitPerSparePartSaleCHF
+    const grossCH =
+      benefitCH + benefitSa + benefitDc + u.extraMarginCHFPerYear + benefitSp
+    const grossLaden = benefitLaden
+    return {
+      ...u,
+      kiCasesCH: kiCH,
+      successfulCasesCH: successCH,
+      kiCasesLaden: kiLaden,
+      successfulCasesLaden: successLaden,
+      savedMinutes: savedMin,
+      benefitWorkCH: benefitCH,
+      benefitWorkLaden: benefitLaden,
+      benefitAvoidedSa: benefitSa,
+      benefitAvoidedDc: benefitDc,
+      benefitExtraSpareParts: benefitSp,
+      grossCH,
+      grossLaden,
+      totalCHFPerYear: grossCH + grossLaden,
+    }
+  })
+
+  const totalWorkCH = lines.reduce((a, l) => a + l.benefitWorkCH, 0)
+  const totalWorkLaden = lines.reduce((a, l) => a + l.benefitWorkLaden, 0)
+  const totalAvoidedSa = lines.reduce((a, l) => a + l.benefitAvoidedSa, 0)
+  const totalAvoidedDc = lines.reduce((a, l) => a + l.benefitAvoidedDc, 0)
+  const totalExtraMargin = lines.reduce(
+    (a, l) => a + l.extraMarginCHFPerYear,
+    0,
+  )
+  const totalExtraSpareParts = lines.reduce(
+    (a, l) => a + l.benefitExtraSpareParts,
+    0,
+  )
+  const grossCHOnly = lines.reduce((a, l) => a + l.grossCH, 0)
+  const gross = grossCHOnly + totalWorkLaden
+
+  return {
+    lines,
+    totalWorkCH,
+    totalWorkLaden,
+    totalAvoidedSa,
+    totalAvoidedDc,
+    totalExtraMargin,
+    totalExtraSpareParts,
+    grossCHFPerYear: gross,
+    grossCHOnly,
+  }
+}
+
 export function computeBenefits(
   b: BenefitInputs,
   c: CommercialInputs,
+  workshopUseCases: WorkshopUseCase[] = [],
 ): BenefitCore {
   const lines = [
     leverUnnecessarySa(b),
@@ -166,5 +266,6 @@ export function computeBenefits(
     commercialGrossCHFPerYear: commercialGross,
     commercialAfterHaircutCHFPerYear: commercialAfterHaircut,
     baseCaseCHFPerYear: baseCase,
+    workshop: computeWorkshop(workshopUseCases),
   }
 }
