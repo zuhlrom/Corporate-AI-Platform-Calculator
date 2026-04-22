@@ -15,7 +15,8 @@ The reference file is vendored for offline demos:
 | Command | Description |
 | --- | --- |
 | `npm install` | Install dependencies |
-| `npm run dev` | Vite dev server |
+| `npm run dev` | Vite dev server (Port 5173) |
+| `npm run dev:5174` | Dev-Server auf **5174**, falls 5173 blockiert ist |
 | `npm run build` | Typecheck + production bundle |
 | `npm run test` | Vitest — regression checks against the v11-1 workbook |
 | `npm run lint` | ESLint |
