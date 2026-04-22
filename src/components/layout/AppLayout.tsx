@@ -37,6 +37,11 @@ export default function AppLayout() {
             </NavLink>
           ))}
         </nav>
+        <div className="border-t border-border p-2 text-[10px] leading-snug text-muted-foreground">
+          UI-Build <span className="font-mono text-foreground">2026-04-22-sheets</span>
+          <br />
+          Nach Update: Hard-Reload (⌘⇧R)
+        </div>
       </aside>
       <main className="min-w-0 flex-1 overflow-auto p-4 md:p-6">
         <Outlet />
