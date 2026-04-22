@@ -290,6 +290,64 @@ export default function ScenariosPage() {
             </div>
           </SectionCard>
 
+          <SectionCard
+            title="Narrativ / Positionierung"
+            subtitle="Kurze Einordnung pro Szenario (fliesst in die qualitative Bewertung ein)."
+          >
+            <textarea
+              value={active.narrative}
+              onChange={(e) =>
+                apply((m) => {
+                  const t = m.scenarios.find((x) => x.id === activeId)
+                  if (t) t.narrative = e.target.value
+                })
+              }
+              rows={3}
+              className="w-full rounded-md border border-input bg-yellow-50 px-2 py-1 text-sm text-blue-800 dark:bg-yellow-900/25 dark:text-blue-200"
+            />
+          </SectionCard>
+
+          <SectionCard
+            title="Qualitative Scorecard"
+            subtitle="1 = schwach, 5 = stark. Total informiert die Entscheidung neben Cashflow/ROI."
+          >
+            <table className="w-full text-xs">
+              <tbody>
+                {active.scorecard.map((entry, i) => (
+                  <tr key={entry.id} className="border-b border-border/60">
+                    <td className="py-1 pr-2 text-muted-foreground">
+                      {entry.labelDe}
+                    </td>
+                    <td className="w-28 py-1 text-right">
+                      <NumInput
+                        className="w-20 text-right"
+                        value={entry.score}
+                        min={0}
+                        max={5}
+                        step={1}
+                        onChange={(v) =>
+                          apply((m) => {
+                            const t = m.scenarios.find((x) => x.id === activeId)
+                            if (!t) return
+                            const row = t.scorecard[i]
+                            if (row) row.score = Math.max(0, Math.min(5, v))
+                          })
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))}
+                <tr className="font-medium">
+                  <td className="py-1 pr-2">Total</td>
+                  <td className="py-1 pr-2 text-right">
+                    {active.scorecard.reduce((a, e) => a + e.score, 0)} /{" "}
+                    {active.scorecard.length * 5}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </SectionCard>
+
           <SectionCard title="Realisierung (Nutzen)">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-xs text-muted-foreground">

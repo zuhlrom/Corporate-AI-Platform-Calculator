@@ -71,25 +71,49 @@ export default function BenefitsPage() {
         </table>
       </SectionCard>
 
-      <SectionCard title="Kommerziell (abgeleitet)">
+      <SectionCard
+        title="Kommerzielle Upside (abgeleitet aus Treibern)"
+        subtitle="Override im Input möglich. Inaktiv im Basiscase solange der Schalter in 02_INPUTS (D81) = 0."
+      >
         <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left">
+              <th className="p-2 font-medium">Hebel</th>
+              <th className="p-2 text-right font-medium">Einheiten / Fälle</th>
+              <th className="p-2 text-right font-medium">CHF p.a.</th>
+            </tr>
+          </thead>
           <tbody>
-            <tr className="border-b border-border/70">
-              <td className="p-2 text-muted-foreground">Brutto Upside</td>
+            {b.commercialLines.map((line) => (
+              <tr key={line.key} className="border-b border-border/70">
+                <td className="p-2 text-muted-foreground">{line.labelDe}</td>
+                <td className="p-2 text-right tabular-nums">
+                  {formatNum(line.unitsOrCases)}
+                </td>
+                <td className="p-2 text-right tabular-nums">
+                  {formatChf(line.chfPerYear)}
+                </td>
+              </tr>
+            ))}
+            <tr className="font-medium">
+              <td className="p-2">Brutto Upside p.a.</td>
+              <td className="p-2 text-right">—</td>
               <td className="p-2 text-right">
                 {formatChf(b.commercialGrossCHFPerYear)}
               </td>
             </tr>
-            <tr className="border-b border-border/70">
+            <tr>
               <td className="p-2 text-muted-foreground">
-                Nach Haircut (falls aktiv)
+                × Haircut ({model.commercial.haircutFraction * 100} %)
               </td>
+              <td className="p-2 text-right">—</td>
               <td className="p-2 text-right">
-                {formatChf(b.commercialConservativeCHFPerYear)}
+                {formatChf(b.commercialAfterHaircutCHFPerYear)}
               </td>
             </tr>
             <tr className="font-medium">
-              <td className="p-2">Basiscase p.a. (Effizienz + optional)</td>
+              <td className="p-2">Basiscase p.a. (Effizienz + optional kommerziell)</td>
+              <td className="p-2 text-right">—</td>
               <td className="p-2 text-right">
                 {formatChf(b.baseCaseCHFPerYear)}
               </td>

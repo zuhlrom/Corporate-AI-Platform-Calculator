@@ -15,9 +15,18 @@ export interface PhaseRollup {
   mvpBlockExtChfBaseline: number[]
 }
 
+/** Qualitative scorecard (1–5). Extra criteria may be added by the user. */
+export interface ScorecardEntry {
+  id: string
+  labelDe: string
+  score: number
+}
+
 export interface ScenarioModel {
   id: string
   name: string
+  /** Narrative / positioning text (sheet `03` row 6). */
+  narrative: string
   /** Multiplier on external PT and on PoC/MVP CHF baselines (sheet `04` block). */
   costFactor: number
   pricingMode: PricingMode
@@ -43,6 +52,7 @@ export interface ScenarioModel {
   platformInfraMonthlyCHF: number[]
   /** Contingency on infra lines (workbook uses 10%). */
   platformContingencyFraction?: number
+  scorecard: ScorecardEntry[]
 }
 
 export interface BenefitInputs {
@@ -62,15 +72,38 @@ export interface BenefitInputs {
   remainingRequestTimeSavingFraction: number
   overrideAvoidedDirectCredits: number
   overrideDirectCreditBenefitCHF: number
-  /** When >0, lever 3 CHF = overrideAvoidedDirectCredits × (directCreditVolumeCHF / directCreditsPerYear). */
+  /** Default 0.75 in workbook. */
   conservativeEfficiencyFactor: number
 }
 
 export interface CommercialInputs {
   activeInBaseCase: boolean
   haircutFraction: number
-  /** Primary conversion-uplift path (sheet `06` D34) when active. */
-  conversionUpliftCurrentCHFGross: number
+  /** Online & stationary drivers (sheet `02` rows 67–85). */
+  basketCurrentCHF: number
+  basketBudgetCHF: number
+  revenueOnlineCurrentCHF: number
+  revenueOnlineBudgetCHF: number
+  sessionsCurrentPerYear: number
+  sessionsBudgetPerYear: number
+  conversionRateCurrent: number
+  conversionRateBudget: number
+  conversionRateNew: number
+  stationaryRevenueTotalCHF: number
+  marginFraction: number
+  influencedStationaryShare: number
+  basketUpliftFraction: number
+  frequencyUpliftFraction: number
+  sparePartsRevenueCHF: number
+  sparePartsMarginFraction: number
+  sparePartsUpliftFraction: number
+  /**
+   * If > 0, overrides the derived "Brutto kommerzielle Upside" before haircut.
+   * 0 means use the derived value.
+   */
+  overrideGrossCHF: number
+  /** Apply budget variant for online uplift (sheet `06` row 35). */
+  useBudgetForOnline: boolean
 }
 
 export interface UsageInputs {
@@ -97,8 +130,48 @@ export interface FteCostInputs {
   monthlyContentCHF: number
 }
 
+/** Skalierung / Organisation / Basisgrössen – disaggregiert wie im Workbook. */
+export interface ScalingInputs {
+  numberOfPoS: number
+  serviceMAPerPoS: number
+  serviceCenterUsers: number
+  centralExperts: number
+  usdChfFx: number
+}
+
+/** Komplexität & Kostensätze (sheet `02` block 3). */
+export interface RatesInputs {
+  knowledgeSources: number
+  coreSystems: number
+  useCasesPhase1: number
+  languagesWave1: number
+  securityMultiplier: number
+  externalDayRateCHF: number
+  internalDayRateCHF: number
+  bisonDayRateCHF: number
+  servicePersonnelCHFPerHour: number
+  productiveHoursPerFteYear: number
+  contingencyFraction: number
+  hybridOnPremFactor: number
+}
+
+/** Dokumentmengen (sheet `02` block 6). */
+export interface DocumentCountsInputs {
+  pimExport: number
+  productImages: number
+  sparePartImages: number
+  mamPdfs: number
+  pagesPerPdf: number
+  charsPerPage: number
+  mbPerPage: number
+  serviceOrderCharacters: number
+}
+
 export interface CalcModel {
   horizonYears: number
+  scaling: ScalingInputs
+  rates: RatesInputs
+  documents: DocumentCountsInputs
   usage: UsageInputs
   fteCosts: FteCostInputs
   benefits: BenefitInputs

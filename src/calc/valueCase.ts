@@ -38,7 +38,7 @@ export function computeValueCase(
   const steadyEfficiency =
     benefits.conservativeEfficiencyCHFPerYear * scenario.realizationEfficiency
 
-  const commercialConservative = benefits.commercialConservativeCHFPerYear
+  const commercialConservative = benefits.commercialAfterHaircutCHFPerYear
   const steadyCommercial =
     commercialActiveInBase && commercialConservative > 0
       ? commercialConservative * scenario.realizationCommercial

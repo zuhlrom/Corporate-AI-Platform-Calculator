@@ -2,7 +2,7 @@ import { create } from "zustand"
 import { immer } from "zustand/middleware/immer"
 
 import type { CalcModel, ScenarioModel } from "@/calc/model"
-import { cloneDefaultModel } from "@/state/defaultModel"
+import { cloneDefaultModel, SCORECARD_DEFAULTS } from "@/state/defaultModel"
 
 const PLATFORM_LINE_COUNT = 11
 
@@ -14,6 +14,7 @@ function templateScenario(name = "Neues Szenario"): ScenarioModel {
   return {
     id: newScenarioId(),
     name,
+    narrative: "",
     costFactor: 1,
     pricingMode: "tokens",
     creditsPerInteraction: 10,
@@ -31,6 +32,8 @@ function templateScenario(name = "Neues Szenario"): ScenarioModel {
       hypercareContentFteY1: 0.2,
     },
     platformInfraMonthlyCHF: Array(PLATFORM_LINE_COUNT).fill(0),
+    platformContingencyFraction: 0.1,
+    scorecard: SCORECARD_DEFAULTS.map((e) => ({ ...e })),
   }
 }
 

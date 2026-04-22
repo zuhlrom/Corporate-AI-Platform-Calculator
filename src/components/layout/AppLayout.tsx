@@ -38,7 +38,7 @@ export default function AppLayout() {
           ))}
         </nav>
         <div className="border-t border-border p-2 text-[10px] leading-snug text-muted-foreground">
-          UI-Build <span className="font-mono text-foreground">2026-04-22-sheets</span>
+          UI-Build <span className="font-mono text-foreground">2026-04-22-breakeven</span>
           <br />
           Nach Update: Hard-Reload (⌘⇧R)
         </div>

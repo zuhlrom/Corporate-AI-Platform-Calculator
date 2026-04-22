@@ -3,17 +3,28 @@ import type { ReactNode } from "react"
 import { SectionCard } from "@/components/forms/SectionCard"
 import { NumInput } from "@/components/forms/NumInput"
 import { useModelStore } from "@/state/store"
+import { computeBenefits } from "@/calc/benefits"
+import { formatChf } from "@/lib/format"
 
 function Row({
   label,
+  hint,
   children,
 }: {
   label: string
+  hint?: string
   children: ReactNode
 }) {
   return (
-    <div className="grid grid-cols-[minmax(12rem,1.2fr)_minmax(8rem,1fr)] items-center gap-2 border-b border-border/60 py-1.5 text-sm last:border-0">
-      <span className="text-muted-foreground">{label}</span>
+    <div className="grid grid-cols-[minmax(12rem,1.3fr)_minmax(8rem,1fr)] items-start gap-2 border-b border-border/60 py-1.5 text-sm last:border-0">
+      <span className="text-muted-foreground">
+        {label}
+        {hint ? (
+          <span className="block text-[10px] text-muted-foreground/70">
+            {hint}
+          </span>
+        ) : null}
+      </span>
       {children}
     </div>
   )
@@ -24,19 +35,25 @@ export default function InputsPage() {
   const model = useModelStore((s) => s.model)
   const setHorizonYears = useModelStore((s) => s.setHorizonYears)
 
+  const b = computeBenefits(model.benefits, model.commercial)
+
+  const computedPotentialUsers =
+    model.scaling.numberOfPoS * model.scaling.serviceMAPerPoS +
+    model.scaling.serviceCenterUsers +
+    model.scaling.centralExperts
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold">02_INPUTS</h1>
         <p className="text-muted-foreground mt-1 max-w-3xl text-sm">
-          Gemeinsame Treiber für alle Szenarien (Skalierung, Nutzung,
-          Kostensätze, Effizienzhebel, kommerzielle Schalter). Gelbe Felder =
-          editierbar wie im Excel.
+          Gemeinsame Treiber für alle Szenarien. Gelbe Felder = editierbar wie
+          im Excel; daraus werden OPEX, Nutzen und Value Case berechnet.
         </p>
       </div>
 
       <SectionCard
-        title="Planungshorizont"
+        title="0) Planungshorizont"
         subtitle="Passt die Länge der Adoption Y1…Yn an (letzter Wert wird für neue Jahre kopiert)."
       >
         <Row label="Jahre">
@@ -50,23 +67,61 @@ export default function InputsPage() {
       </SectionCard>
 
       <SectionCard
-        title="Skalierung & Nutzung"
-        subtitle="Entspricht den Blöcken 1) und 2) im Excel."
+        title="1) Skalierung & Organisation"
+        subtitle="Block 1 im Excel. Potenzielle Nutzer werden aus den Bestandteilen abgeleitet."
       >
-        <Row label="Potenzielle Nutzer (#)">
+        <Row label="Anzahl PoS (Filialen)">
+          <NumInput
+            value={model.scaling.numberOfPoS}
+            onChange={(v) => apply((m) => void (m.scaling.numberOfPoS = v))}
+          />
+        </Row>
+        <Row label="Service-MA pro PoS">
+          <NumInput
+            value={model.scaling.serviceMAPerPoS}
+            onChange={(v) => apply((m) => void (m.scaling.serviceMAPerPoS = v))}
+          />
+        </Row>
+        <Row label="Service-Center Nutzer">
+          <NumInput
+            value={model.scaling.serviceCenterUsers}
+            onChange={(v) =>
+              apply((m) => void (m.scaling.serviceCenterUsers = v))
+            }
+          />
+        </Row>
+        <Row label="Zentrale Experten">
+          <NumInput
+            value={model.scaling.centralExperts}
+            onChange={(v) => apply((m) => void (m.scaling.centralExperts = v))}
+          />
+        </Row>
+        <Row label="USD/CHF FX" hint="Umrechnung USD-Listenpreise">
+          <NumInput
+            value={model.scaling.usdChfFx}
+            onChange={(v) => apply((m) => void (m.scaling.usdChfFx = v))}
+            step={0.01}
+          />
+        </Row>
+        <Row
+          label="Totale potenzielle Nutzer (Modell)"
+          hint="Editierbar, falls Sie einen abweichenden Zielwert verwenden. Default = Summe oben."
+        >
           <NumInput
             value={model.usage.potentialUsers}
             onChange={(v) => apply((m) => void (m.usage.potentialUsers = v))}
           />
         </Row>
-        <Row label="Interaktionen / aktiver Nutzer / Arbeitstag">
-          <NumInput
-            value={model.usage.interactionsPerActiveUserPerWorkday}
-            onChange={(v) =>
-              apply((m) => void (m.usage.interactionsPerActiveUserPerWorkday = v))
-            }
-          />
-        </Row>
+        <div className="mt-1 text-xs text-muted-foreground">
+          Summenvorschlag: <strong>{computedPotentialUsers}</strong> Nutzer
+          (PoS × MA/PoS + Service-Center + Experten).
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="2) Nutzung & Volumen"
+        subtitle="Block 2 im Excel – Adoption, Token-Mix, Peak-Last."
+      >
         <Row label="Arbeitstage / Jahr">
           <NumInput
             value={model.usage.workdaysPerYear}
@@ -84,6 +139,17 @@ export default function InputsPage() {
             value={model.usage.operatingHoursPerDay}
             onChange={(v) =>
               apply((m) => void (m.usage.operatingHoursPerDay = v))
+            }
+          />
+        </Row>
+        <Row label="Interaktionen / aktiver Nutzer / Arbeitstag">
+          <NumInput
+            value={model.usage.interactionsPerActiveUserPerWorkday}
+            onChange={(v) =>
+              apply(
+                (m) =>
+                  void (m.usage.interactionsPerActiveUserPerWorkday = v),
+              )
             }
           />
         </Row>
@@ -178,6 +244,101 @@ export default function InputsPage() {
         </div>
       </SectionCard>
 
+      <SectionCard
+        title="3) Komplexität & Kostensätze"
+        subtitle="Block 3 im Excel. Treiber für Delivery-Aufwand und OPEX-FTE."
+      >
+        <Row label="Wissensquellen (#)">
+          <NumInput
+            value={model.rates.knowledgeSources}
+            onChange={(v) => apply((m) => void (m.rates.knowledgeSources = v))}
+          />
+        </Row>
+        <Row label="Kernsysteme (#)">
+          <NumInput
+            value={model.rates.coreSystems}
+            onChange={(v) => apply((m) => void (m.rates.coreSystems = v))}
+          />
+        </Row>
+        <Row label="Use Cases Phase 1 (#)">
+          <NumInput
+            value={model.rates.useCasesPhase1}
+            onChange={(v) => apply((m) => void (m.rates.useCasesPhase1 = v))}
+          />
+        </Row>
+        <Row label="Sprachen Welle 1 (#)">
+          <NumInput
+            value={model.rates.languagesWave1}
+            onChange={(v) => apply((m) => void (m.rates.languagesWave1 = v))}
+          />
+        </Row>
+        <Row label="Sicherheits-Multiplikator">
+          <NumInput
+            value={model.rates.securityMultiplier}
+            onChange={(v) =>
+              apply((m) => void (m.rates.securityMultiplier = v))
+            }
+            step={0.05}
+          />
+        </Row>
+        <Row label="Externer Tagessatz (CHF/PD)">
+          <NumInput
+            value={model.rates.externalDayRateCHF}
+            onChange={(v) =>
+              apply((m) => void (m.rates.externalDayRateCHF = v))
+            }
+          />
+        </Row>
+        <Row label="Interner Tagessatz (CHF/PD)">
+          <NumInput
+            value={model.rates.internalDayRateCHF}
+            onChange={(v) =>
+              apply((m) => void (m.rates.internalDayRateCHF = v))
+            }
+          />
+        </Row>
+        <Row label="Bison-Tagessatz (CHF/PD)">
+          <NumInput
+            value={model.rates.bisonDayRateCHF}
+            onChange={(v) => apply((m) => void (m.rates.bisonDayRateCHF = v))}
+          />
+        </Row>
+        <Row label="Personalkosten Service (CHF/h)">
+          <NumInput
+            value={model.rates.servicePersonnelCHFPerHour}
+            onChange={(v) =>
+              apply((m) => void (m.rates.servicePersonnelCHFPerHour = v))
+            }
+          />
+        </Row>
+        <Row label="Produktive Stunden / FTE / Jahr">
+          <NumInput
+            value={model.rates.productiveHoursPerFteYear}
+            onChange={(v) =>
+              apply((m) => void (m.rates.productiveHoursPerFteYear = v))
+            }
+          />
+        </Row>
+        <Row label="Contingency (0–1)">
+          <NumInput
+            value={model.rates.contingencyFraction}
+            onChange={(v) =>
+              apply((m) => void (m.rates.contingencyFraction = v))
+            }
+            step={0.01}
+          />
+        </Row>
+        <Row label="Hybrid- / On-Prem-Faktor">
+          <NumInput
+            value={model.rates.hybridOnPremFactor}
+            onChange={(v) =>
+              apply((m) => void (m.rates.hybridOnPremFactor = v))
+            }
+            step={0.05}
+          />
+        </Row>
+      </SectionCard>
+
       <SectionCard title="FTE-Monatskosten (CHF)" subtitle="Für Run-Model / OPEX.">
         <Row label="Business / PO">
           <NumInput
@@ -206,8 +367,8 @@ export default function InputsPage() {
       </SectionCard>
 
       <SectionCard
-        title="Effizienzhebel (Top-down)"
-        subtitle="Wie Zeilenblock 1) im Blatt 06_NUTZEN_MODELL."
+        title="4) Effizienzhebel (Top-down)"
+        subtitle="Wie Zeilenblock 1 im Blatt 06_NUTZEN_MODELL. Override-Felder > 0 überschreiben den abgeleiteten Wert."
       >
         <Row label="Reduktion unnötige SA (Ziel %)">
           <NumInput
@@ -234,7 +395,7 @@ export default function InputsPage() {
             }
           />
         </Row>
-        <Row label="Vollkostenähnlicher Satz Service/Technik (CHF/h)">
+        <Row label="Satz Service/Technik (CHF/h)">
           <NumInput
             value={model.benefits.fullCostServiceTechCHFPerHour}
             onChange={(v) =>
@@ -345,10 +506,17 @@ export default function InputsPage() {
             step={0.01}
           />
         </Row>
+        <div className="mt-2 rounded bg-muted/40 p-2 text-xs text-muted-foreground">
+          Abgeleiteter konservativer Brutto-Nutzen:{" "}
+          <strong>{formatChf(b.conservativeEfficiencyCHFPerYear)}</strong> p.a.
+        </div>
       </SectionCard>
 
-      <SectionCard title="Kommerzielle Hebel (Schalter)" subtitle="Blatt 06 / 02">
-        <Row label="Kommerzielle Upside im Basiscase aktiv (0/1)">
+      <SectionCard
+        title="5) Kommerzielle Hebel (Online & Stationär)"
+        subtitle="Blatt 06 §3 – abgeleitet aus Sessions, Conversion, Basket & Spare Parts. Override möglich."
+      >
+        <Row label="Kommerzielle Upside im Basiscase aktiv">
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -363,7 +531,23 @@ export default function InputsPage() {
             <span>Aktiv</span>
           </label>
         </Row>
-        <Row label="Haircut kommerzielle Upside (0–1)">
+        <Row label="Budget-Variante (Sessions/CR/Basket = Budget)">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="size-4 rounded border-input"
+              checked={model.commercial.useBudgetForOnline}
+              onChange={(e) =>
+                apply(
+                  (m) =>
+                    void (m.commercial.useBudgetForOnline = e.target.checked),
+                )
+              }
+            />
+            <span>Budget statt aktuell</span>
+          </label>
+        </Row>
+        <Row label="Haircut (0–1)">
           <NumInput
             value={model.commercial.haircutFraction}
             onChange={(v) =>
@@ -372,11 +556,207 @@ export default function InputsPage() {
             step={0.05}
           />
         </Row>
-        <Row label="Conversion-Uplift brutto (CHF p.a.)">
+        <Row label="Basket aktuell (CHF)">
           <NumInput
-            value={model.commercial.conversionUpliftCurrentCHFGross}
+            value={model.commercial.basketCurrentCHF}
             onChange={(v) =>
-              apply((m) => void (m.commercial.conversionUpliftCurrentCHFGross = v))
+              apply((m) => void (m.commercial.basketCurrentCHF = v))
+            }
+            step={0.1}
+          />
+        </Row>
+        <Row label="Basket Budget (CHF)">
+          <NumInput
+            value={model.commercial.basketBudgetCHF}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.basketBudgetCHF = v))
+            }
+            step={0.1}
+          />
+        </Row>
+        <Row label="Sessions aktuell p.a.">
+          <NumInput
+            value={model.commercial.sessionsCurrentPerYear}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.sessionsCurrentPerYear = v))
+            }
+          />
+        </Row>
+        <Row label="Sessions Budget p.a.">
+          <NumInput
+            value={model.commercial.sessionsBudgetPerYear}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.sessionsBudgetPerYear = v))
+            }
+          />
+        </Row>
+        <Row label="Conversion aktuell (0–1)">
+          <NumInput
+            value={model.commercial.conversionRateCurrent}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.conversionRateCurrent = v))
+            }
+            step={0.0001}
+          />
+        </Row>
+        <Row label="Conversion Budget (0–1)">
+          <NumInput
+            value={model.commercial.conversionRateBudget}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.conversionRateBudget = v))
+            }
+            step={0.0001}
+          />
+        </Row>
+        <Row label="Conversion Zielwert mit Assistant (0–1)">
+          <NumInput
+            value={model.commercial.conversionRateNew}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.conversionRateNew = v))
+            }
+            step={0.0001}
+          />
+        </Row>
+        <Row label="Marge (0–1)">
+          <NumInput
+            value={model.commercial.marginFraction}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.marginFraction = v))
+            }
+            step={0.001}
+          />
+        </Row>
+        <Row label="Stationärer Umsatz gesamt (CHF)">
+          <NumInput
+            value={model.commercial.stationaryRevenueTotalCHF}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.stationaryRevenueTotalCHF = v))
+            }
+          />
+        </Row>
+        <Row label="Basket-Uplift Anteil (0–1)">
+          <NumInput
+            value={model.commercial.basketUpliftFraction}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.basketUpliftFraction = v))
+            }
+            step={0.01}
+          />
+        </Row>
+        <Row label="Frequenz-Uplift Anteil (0–1)">
+          <NumInput
+            value={model.commercial.frequencyUpliftFraction}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.frequencyUpliftFraction = v))
+            }
+            step={0.01}
+          />
+        </Row>
+        <Row label="Ersatzteil-Umsatz (CHF)">
+          <NumInput
+            value={model.commercial.sparePartsRevenueCHF}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.sparePartsRevenueCHF = v))
+            }
+          />
+        </Row>
+        <Row label="Ersatzteil-Marge (0–1)">
+          <NumInput
+            value={model.commercial.sparePartsMarginFraction}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.sparePartsMarginFraction = v))
+            }
+            step={0.01}
+          />
+        </Row>
+        <Row label="Ersatzteil-Uplift (0–1)">
+          <NumInput
+            value={model.commercial.sparePartsUpliftFraction}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.sparePartsUpliftFraction = v))
+            }
+            step={0.01}
+          />
+        </Row>
+        <Row
+          label="Override Brutto-Upside (CHF p.a.)"
+          hint="Wenn > 0, ersetzt den abgeleiteten Gesamtwert."
+        >
+          <NumInput
+            value={model.commercial.overrideGrossCHF}
+            onChange={(v) =>
+              apply((m) => void (m.commercial.overrideGrossCHF = v))
+            }
+          />
+        </Row>
+        <div className="mt-2 rounded bg-muted/40 p-2 text-xs text-muted-foreground">
+          Abgeleitete Brutto-Upside:{" "}
+          <strong>{formatChf(b.commercialGrossCHFPerYear)}</strong> p.a. · Nach
+          Haircut <strong>{formatChf(b.commercialAfterHaircutCHFPerYear)}</strong>
+          .
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="6) Dokumentmengen (Kontext)"
+        subtitle="Block 6 im Excel – informativ für RAG/Speicher-Kalkulation."
+      >
+        <Row label="PIM-Export (#)">
+          <NumInput
+            value={model.documents.pimExport}
+            onChange={(v) => apply((m) => void (m.documents.pimExport = v))}
+          />
+        </Row>
+        <Row label="Produktbilder (#)">
+          <NumInput
+            value={model.documents.productImages}
+            onChange={(v) =>
+              apply((m) => void (m.documents.productImages = v))
+            }
+          />
+        </Row>
+        <Row label="Ersatzteil-Bilder (#)">
+          <NumInput
+            value={model.documents.sparePartImages}
+            onChange={(v) =>
+              apply((m) => void (m.documents.sparePartImages = v))
+            }
+          />
+        </Row>
+        <Row label="MAM PDFs (#)">
+          <NumInput
+            value={model.documents.mamPdfs}
+            onChange={(v) => apply((m) => void (m.documents.mamPdfs = v))}
+          />
+        </Row>
+        <Row label="Seiten / PDF">
+          <NumInput
+            value={model.documents.pagesPerPdf}
+            onChange={(v) =>
+              apply((m) => void (m.documents.pagesPerPdf = v))
+            }
+          />
+        </Row>
+        <Row label="Zeichen / Seite">
+          <NumInput
+            value={model.documents.charsPerPage}
+            onChange={(v) =>
+              apply((m) => void (m.documents.charsPerPage = v))
+            }
+          />
+        </Row>
+        <Row label="MB / Seite">
+          <NumInput
+            value={model.documents.mbPerPage}
+            onChange={(v) => apply((m) => void (m.documents.mbPerPage = v))}
+            step={0.01}
+          />
+        </Row>
+        <Row label="Zeichen Serviceaufträge">
+          <NumInput
+            value={model.documents.serviceOrderCharacters}
+            onChange={(v) =>
+              apply((m) => void (m.documents.serviceOrderCharacters = v))
             }
           />
         </Row>
